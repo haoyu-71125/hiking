@@ -893,11 +893,47 @@ async function apiDeleteImage(cfg, imgId) {
     headers: { 'X-API-Key': cfg.apiKey }
   });
 }
-// Returns a public R2 URL for an image (served via Worker)
-function imgUrl(imgId) {
+// ═══════════════════════════════════════════════
+//  IMAGE DISPLAY  (authenticated fetch → blob URL cache)
+//  R2 images require X-API-Key, so we can't use <img src="worker/img/xxx"> directly.
+//  Instead: fetch with auth → blob URL → cache in memory + localStorage
+// ═══════════════════════════════════════════════
+const _blobUrlCache = {};  // imgId → object URL (in-memory, current session)
+
+// Returns a displayable src for an imgId:
+//   1. In-memory blob URL (fastest, same session)
+//   2. localStorage base64 cache (offline / previous session)
+//   3. Kicks off an authenticated fetch from R2 and updates the DOM when done
+function imgSrc(imgId, onLoad) {
+  if (!imgId) return '';
+  // 1. In-memory blob URL
+  if (_blobUrlCache[imgId]) return _blobUrlCache[imgId];
+  // 2. Local cache (base64)
+  const cached = cacheGet(imgId);
+  if (cached) return cached;
+  // 3. Fetch from R2 with auth (async)
   const cfg = getCfg();
-  if (cfg.url && imgId) return cfg.url + '/img/' + imgId;
-  return cacheGet(imgId) || '';
+  if (cfg.url) {
+    fetch(cfg.url + '/img/' + imgId, { headers: { 'X-API-Key': cfg.apiKey } })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        _blobUrlCache[imgId] = blobUrl;
+        // Also cache as base64 for next session
+        const reader = new FileReader();
+        reader.onload = e => cacheSet(imgId, e.target.result);
+        reader.readAsDataURL(blob);
+        // Update all DOM elements showing this image
+        document.querySelectorAll(`[data-imgid="${imgId}"]`).forEach(img => {
+          img.src = blobUrl;
+          img.closest('.photo-img-wrap')?.classList.add('has-img');
+          img.closest('.routemap-upload-area')?.classList.remove('empty');
+        });
+        if (onLoad) onLoad(blobUrl);
+      })
+      .catch(() => {});  // silently fail — image just won't show
+  }
+  return '';  // placeholder while loading
 }
 
 // ═══════════════════════════════════════════════
@@ -1224,7 +1260,7 @@ function buildTripCard(trip) {
            id="routemap-${trip.id}"
            onclick="triggerRoutemapUpload('${trip.id}')">
         ${(trip.mapImgId||trip.mapImg)
-          ? `<img src="${imgUrl(trip.mapImgId)||trip.mapImg||''}" alt="route map">`
+          ? `<img src="${imgSrc(trip.mapImgId)||trip.mapImg||''}" data-imgid="${trip.mapImgId||''}" alt="route map">`
           : ''}
         <div class="routemap-upload-overlay">
           <span class="up-icon">🗺</span>
@@ -1284,12 +1320,13 @@ function buildStageHTML(s, tripId) {
 }
 
 function buildPhotoHTML(p, tripId) {
-  const src = imgUrl(p.imgId) || p.img || '';
+  const src = imgSrc(p.imgId) || p.img || '';
+  const imgTag = p.imgId
+    ? `<img src="${src}" data-imgid="${p.imgId}" alt="">`
+    : (src ? `<img src="${src}" alt="">` : '');
   return `<div class="photo-card" id="photo-${p.id}">
     <div class="photo-img-wrap ${src?'has-img':''}" onclick="triggerPhotoUpload('${tripId}','${p.id}')">
-      ${src
-        ? `<img src="${src}" alt="">`
-        : `<div class="photo-placeholder"><span class="pp-icon">🏔</span><span>点击上传图片</span></div>`}
+      ${imgTag || `<div class="photo-placeholder"><span class="pp-icon">🏔</span><span>点击上传图片</span></div>`}
     </div>
     <div class="photo-caption">
       <p class="photo-place" contenteditable="true">${escHtml(p.place)}</p>
