@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hao's Hiking Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & VARS ─────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --sand:#F5F0E8;--sand-d:#EAE3D5;--sand-dd:#D8CFBC;
+  --stone:#2C2A26;--stone-m:#5C5850;--stone-l:#9C9890;
+  --moss:#4A6741;--rust:#A85230;--gold:#C4922A;
+  --blue:#3A6A9C;--blue-l:#6A9AC8;
+  --border:rgba(44,42,38,.12);--border-m:rgba(44,42,38,.22);
+  --r:12px;--r-s:7px;
+  --edit-ring:2px solid rgba(74,103,65,.55);
+}
+body{font-family:'Jost',sans-serif;background:var(--sand);color:var(--stone);min-height:100vh;}
+
+/* ── GRAIN OVERLAY ── */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");}
+
+.page{max-width:900px;margin:0 auto;padding:3rem 2rem 5rem;position:relative;z-index:1;}
+
+/* ── EDIT HINT BAR ── */
+.edit-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#EAF0E2;border:1px solid rgba(74,103,65,.25);
+  border-radius:var(--r-s);padding:.6rem 1rem;margin-bottom:2rem;
+  font-size:12px;color:#3A6030;font-weight:400;gap:1rem;flex-wrap:wrap;
+}
+.edit-bar strong{font-weight:600;}
+.edit-bar-btns{display:flex;gap:8px;}
+.btn-sm{
+  font-family:'Jost',sans-serif;font-size:11.5px;font-weight:500;
+  padding:4px 14px;border-radius:20px;border:1px solid;cursor:pointer;
+  transition:all .15s;letter-spacing:.04em;
+}
+.btn-export{background:transparent;color:var(--blue);border-color:var(--blue);}
+.btn-export:hover{background:var(--blue);color:white;}
+.btn-import{background:transparent;color:var(--gold);border-color:var(--gold);}
+.btn-import:hover{background:var(--gold);color:white;}
+.btn-cloud{background:transparent;color:var(--moss);border-color:var(--moss);}
+.btn-cloud:hover{background:var(--moss);color:white;}
+.btn-save{background:var(--moss);color:white;border-color:var(--moss);}
+.btn-save:hover{background:#3A5530;}
+
+/* sync pill */
+.sync-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;
+  padding:3px 10px;border-radius:20px;border:1px solid var(--border-m);
+  background:var(--sand-d);color:var(--stone-l);transition:all .3s;white-space:nowrap;}
+.sync-pill.ok {background:#E5F0DE;color:#3A6030;border-color:rgba(58,96,48,.2);}
+.sync-pill.err{background:#FAECE7;color:#A85230;border-color:rgba(168,82,48,.2);}
+.sync-pill.spin{background:var(--sand-d);color:var(--stone-l);}
+.sync-pill .spin-icon{display:inline-block;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* cloud modal extras */
+.setup-step{display:flex;gap:10px;padding:.7rem 0;border-bottom:1px solid var(--border);}
+.setup-step:last-child{border-bottom:none;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--moss);color:white;
+  font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-text{font-size:12.5px;color:var(--stone-m);line-height:1.6;font-weight:300;}
+.step-text strong{font-weight:600;color:var(--stone);}
+.step-text a{color:var(--moss);}
+.step-text code{background:var(--sand-d);padding:1px 6px;border-radius:3px;font-size:11.5px;}
+.cfg-connected{padding:.6rem .9rem;border-radius:var(--r-s);font-size:12px;margin-bottom:1rem;
+  background:#E5F0DE;color:#3A6030;}
+.cfg-disconnected{padding:.6rem .9rem;border-radius:var(--r-s);font-size:12px;margin-bottom:1rem;
+  background:var(--sand-d);color:var(--stone-l);}
+.btn-clear{background:transparent;color:var(--stone-l);border-color:var(--border-m);}
+.btn-clear:hover{color:var(--rust);border-color:var(--rust);}
+
+/* ── SLICER BAR ── */
+.slicer-bar{
+  display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-start;
+  padding:1.25rem 1.5rem;margin-bottom:2rem;
+  background:#FDFAF5;border:1px solid var(--border-m);border-radius:var(--r);
+  box-shadow:0 1px 6px rgba(44,42,38,.05);
+}
+.slicer-group{display:flex;flex-direction:column;gap:.45rem;min-width:0;}
+.slicer-label{
+  font-size:9.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--stone-l);
+}
+.slicer-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.chip{
+  font-family:'Jost',sans-serif;font-size:11.5px;font-weight:400;
+  padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--border-m);
+  background:transparent;color:var(--stone-m);transition:all .15s;white-space:nowrap;
+  letter-spacing:.02em;
+}
+.chip:hover{border-color:var(--stone-m);color:var(--stone);}
+.chip.active{background:var(--stone);color:var(--sand);border-color:var(--stone);}
+.chip.all.active{background:var(--moss);border-color:var(--moss);}
+.slicer-divider{width:1px;background:var(--border-m);align-self:stretch;margin:0 .25rem;}
+.no-results{
+  text-align:center;padding:3rem 1rem;color:var(--stone-l);
+  font-size:13px;font-weight:300;font-family:'Cormorant Garamond',serif;
+  font-style:italic;font-size:18px;display:none;
+}
+
+/* ── HEADER ── */
+.header{padding-bottom:2rem;margin-bottom:2.5rem;border-bottom:1px solid var(--border-m);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;flex-wrap:wrap;}
+.eyebrow{font-size:10.5px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--stone-l);margin-bottom:.5rem;}
+.h-title{font-family:'Cormorant Garamond',serif;font-size:46px;font-weight:300;
+  font-style:italic;line-height:1.1;}
+.h-sub{font-size:13px;color:var(--stone-m);font-weight:300;margin-top:.4rem;letter-spacing:.03em;}
+.header-deco{font-family:'Cormorant Garamond',serif;font-size:72px;line-height:1;
+  opacity:.1;color:var(--stone);user-select:none;}
+
+/* ── EDITABLE FIELDS ── */
+[contenteditable]{
+  outline:none;border-radius:4px;transition:box-shadow .18s,background .18s;
+  cursor:text;
+}
+[contenteditable]:hover{background:rgba(74,103,65,.07);}
+[contenteditable]:focus{
+  box-shadow:var(--edit-ring);background:rgba(255,255,255,.7);
+  padding:1px 4px;
+}
+[contenteditable].placeholder-active{color:var(--stone-l);font-style:italic;}
+
+/* ── TRIP CARD ── */
+.trip-card{
+  background:#FDFAF5;border:1px solid var(--border-m);border-radius:var(--r);
+  overflow:hidden;margin-bottom:1.5rem;
+  box-shadow:0 2px 20px rgba(44,42,38,.06),0 1px 4px rgba(44,42,38,.08);
+  animation:fadeUp .4s ease both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ── CARD HEADER ── */
+.card-header{
+  padding:1.75rem 2rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:flex-start;gap:1.5rem;flex-wrap:wrap;
+}
+.meta-row{display:flex;align-items:center;gap:10px;margin-bottom:.6rem;flex-wrap:wrap;}
+.status-badge{
+  font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  padding:3px 10px;border-radius:20px;background:#DFF0F6;color:#1A5A78;
+  border:1px solid rgba(26,90,120,.15);cursor:pointer;
+  transition:background .2s;
+}
+.status-badge:hover{background:#CBE8F4;}
+/* Status color variants */
+.status-planned{background:#DFF0F6;color:#1A5A78;border-color:rgba(26,90,120,.15);}
+.status-done{background:#E5F0DE;color:#3A6030;border-color:rgba(58,96,48,.15);}
+.status-ongoing{background:#FEF3E0;color:#9A6010;border-color:rgba(154,96,16,.15);}
+.status-dream{background:#F5E8F0;color:#7A3068;border-color:rgba(122,48,104,.15);}
+
+.trip-date{font-size:11.5px;color:var(--stone-l);font-weight:400;letter-spacing:.04em;}
+.trip-name{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:400;line-height:1.2;margin-bottom:.3rem;}
+.trip-route{font-size:13px;color:var(--stone-m);font-weight:300;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.route-sep{color:var(--stone-l);font-size:11px;}
+
+.trip-stats{display:flex;gap:2rem;flex-shrink:0;}
+.stat{text-align:right;}
+.stat-val{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:500;line-height:1;}
+.stat-lbl{font-size:10.5px;color:var(--stone-l);letter-spacing:.06em;margin-top:3px;text-transform:uppercase;}
+
+/* delete card btn */
+.card-del-btn{
+  position:absolute;top:14px;right:14px;
+  width:26px;height:26px;border-radius:50%;border:1px solid var(--border-m);
+  background:transparent;cursor:pointer;font-size:14px;color:var(--stone-l);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;opacity:0;pointer-events:none;
+}
+.trip-card:hover .card-del-btn{opacity:1;pointer-events:auto;}
+.card-del-btn:hover{background:var(--rust);color:white;border-color:var(--rust);}
+.card-wrap{position:relative;}
+
+/* ── SECTION LABEL ── */
+.slabel{font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--stone-l);padding:1.25rem 2rem .75rem;}
+
+/* ── ROUTE MAP IMAGE ── */
+.routemap-block{border-bottom:1px solid var(--border);}
+.routemap-upload-area{
+  position:relative;width:100%;height:320px;overflow:hidden;
+  background:var(--sand-d);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .2s;
+}
+.routemap-upload-area:hover{background:var(--sand-dd);}
+.routemap-upload-area img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  transition:transform .4s;
+}
+.routemap-upload-area:hover img{transform:scale(1.02);}
+.routemap-upload-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;
+  background:rgba(232,224,210,.82);opacity:0;transition:opacity .2s;
+  font-family:'Jost',sans-serif;
+}
+.routemap-upload-area:hover .routemap-upload-overlay{opacity:1;}
+.routemap-upload-area.empty .routemap-upload-overlay{opacity:1;background:transparent;}
+.routemap-upload-overlay .up-icon{font-size:36px;opacity:.5;}
+.routemap-upload-overlay .up-text{font-size:13px;color:var(--stone-m);font-weight:400;}
+.routemap-upload-overlay .up-hint{font-size:11px;color:var(--stone-l);font-weight:300;}
+.routemap-caption-row{
+  display:flex;align-items:center;gap:12px;
+  padding:.75rem 2rem 1rem;background:#F5F0E8;border-top:1px solid var(--border);
+}
+.routemap-caption{
+  flex:1;font-size:12px;color:var(--stone-m);font-weight:300;font-style:italic;
+}
+.routemap-del-btn{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1px solid var(--border-m);
+  background:transparent;cursor:pointer;font-size:11px;color:var(--stone-l);
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+  opacity:0;
+}
+.routemap-block:hover .routemap-del-btn{opacity:1;}
+.routemap-del-btn:hover{background:var(--rust);color:white;border-color:var(--rust);}
+
+/* ── STAGES ── */
+.stages-section{padding:0 2rem 1.75rem;border-bottom:1px solid var(--border);}
+.stages-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:9px;margin-top:.75rem;}
+.stage-card{
+  display:flex;align-items:flex-start;gap:10px;padding:11px 13px;
+  border-radius:var(--r-s);border:1px solid var(--border);background:#FDFAF5;
+  transition:border-color .15s,box-shadow .15s;position:relative;
+}
+.stage-card:hover{border-color:var(--border-m);box-shadow:0 2px 8px rgba(44,42,38,.08);}
+.stage-icon-wrap{position:relative;flex-shrink:0;}
+.stage-icon{
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:14px;flex-shrink:0;cursor:pointer;
+  transition:transform .15s;
+}
+.stage-icon:hover{transform:scale(1.1);}
+.icon-bus{background:#DFF0F6;color:#1A5A78;}
+.icon-walk{background:#E5F0DE;color:#3A6030;}
+.icon-end{background:#F5E8E0;color:var(--rust);}
+.stage-name{font-size:13px;font-weight:500;line-height:1.3;}
+.stage-detail{font-size:11px;color:var(--stone-l);margin-top:2px;font-weight:300;}
+.stage-del{
+  position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;
+  border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--stone-l);
+  display:flex;align-items:center;justify-content:center;opacity:0;transition:all .12s;
+}
+.stage-card:hover .stage-del{opacity:1;}
+.stage-del:hover{background:var(--rust);color:white;}
+.add-stage-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px;border-radius:var(--r-s);border:1px dashed var(--border-m);
+  background:transparent;color:var(--stone-l);font-size:12px;
+  font-family:'Jost',sans-serif;cursor:pointer;transition:all .15s;
+}
+.add-stage-btn:hover{color:var(--moss);border-color:var(--moss);background:rgba(74,103,65,.05);}
+
+/* ── GALLERY ── */
+.gallery-section{padding:0 2rem 1.75rem;border-bottom:1px solid var(--border);}
+.gallery-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-top:.75rem;
+  scrollbar-width:thin;scrollbar-color:var(--sand-dd) transparent;}
+.gallery-scroll::-webkit-scrollbar{height:3px;}
+.gallery-scroll::-webkit-scrollbar-thumb{background:var(--sand-dd);border-radius:2px;}
+
+.photo-card{
+  flex-shrink:0;width:210px;border-radius:var(--r-s);overflow:hidden;
+  border:1px solid var(--border);background:var(--sand-d);position:relative;
+  transition:box-shadow .2s;
+}
+.photo-card:hover{box-shadow:0 4px 16px rgba(44,42,38,.12);}
+.photo-img-wrap{
+  width:100%;height:140px;overflow:hidden;position:relative;background:var(--sand-dd);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.photo-img-wrap::after{
+  content:'📷 点击上传图片';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--stone-l);background:rgba(232,224,210,.7);
+  opacity:0;transition:opacity .2s;font-family:'Jost',sans-serif;
+  flex-direction:column;gap:4px;
+}
+.photo-img-wrap.has-img::after{content:'📷 更换图片';}
+.photo-img-wrap:hover::after{opacity:1;}
+.photo-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;}
+.photo-card:hover .photo-img-wrap img{transform:scale(1.04);}
+.photo-img-wrap .photo-placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  width:100%;height:100%;color:var(--stone-l);font-size:12px;font-weight:300;
+  pointer-events:none;
+}
+.photo-img-wrap .photo-placeholder .pp-icon{font-size:28px;opacity:.4;}
+.photo-caption{padding:9px 11px 11px;}
+.photo-place{font-size:12px;font-weight:500;line-height:1.3;}
+.photo-desc{font-size:11px;color:var(--stone-l);margin-top:2px;font-weight:300;line-height:1.45;}
+.photo-del-btn{
+  position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;
+  background:rgba(44,42,38,.55);border:none;color:white;font-size:12px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;
+}
+.photo-card:hover .photo-del-btn{opacity:1;}
+.photo-del-btn:hover{background:var(--rust);}
+
+.add-photo-btn{
+  flex-shrink:0;width:130px;border-radius:var(--r-s);border:1.5px dashed var(--border-m);
+  background:transparent;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6px;cursor:pointer;color:var(--stone-l);
+  font-size:12px;font-family:'Jost',sans-serif;padding:10px;transition:all .15s;
+  min-height:180px;
+}
+.add-photo-btn:hover{color:var(--moss);border-color:var(--moss);background:rgba(74,103,65,.05);}
+.add-photo-btn .aph-icon{font-size:24px;opacity:.5;}
+
+/* ── HIGHLIGHTS ── */
+.highlights-section{padding:.75rem 2rem 1.75rem;}
+.pills-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:.6rem;align-items:center;}
+.pill{
+  display:flex;align-items:center;gap:6px;padding:5px 12px 5px 9px;
+  border-radius:20px;border:1px solid var(--border-m);background:#F5F0E8;
+  font-size:12px;color:var(--stone-m);white-space:nowrap;font-weight:400;
+  transition:all .15s;position:relative;cursor:default;
+}
+.pill:hover{background:var(--sand-d);}
+.pill-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;cursor:pointer;}
+.pill-del{
+  margin-left:3px;border:none;background:none;cursor:pointer;font-size:11px;
+  color:var(--stone-l);padding:0 0 0 2px;line-height:1;transition:color .12s;
+}
+.pill-del:hover{color:var(--rust);}
+.add-pill-btn{
+  display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;
+  border:1px dashed var(--border-m);background:transparent;
+  color:var(--stone-l);font-size:12px;font-family:'Jost',sans-serif;cursor:pointer;
+  transition:all .15s;
+}
+.add-pill-btn:hover{color:var(--moss);border-color:var(--moss);}
+
+/* ── ADD TRIP ── */
+.add-trip-btn{
+  display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+  padding:1.2rem;border:1.5px dashed var(--border-m);border-radius:var(--r);
+  background:transparent;color:var(--stone-l);font-size:13px;
+  font-family:'Jost',sans-serif;cursor:pointer;transition:all .18s;
+  letter-spacing:.04em;margin-bottom:2.5rem;
+}
+.add-trip-btn:hover{color:var(--stone-m);border-color:var(--stone-m);background:rgba(44,42,38,.03);}
+.add-trip-icon{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;
+  display:flex;align-items:center;justify-content:center;font-size:15px;}
+
+/* ── FOOTER ── */
+.footer{text-align:center;font-family:'Cormorant Garamond',serif;font-style:italic;
+  font-size:14px;color:var(--stone-l);padding-bottom:1rem;}
+
+/* ── MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(44,42,38,.45);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:1.5rem;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:#FDFAF5;border-radius:var(--r);padding:2rem;max-width:520px;width:100%;
+  border:1px solid var(--border-m);box-shadow:0 12px 48px rgba(44,42,38,.18);
+  max-height:90vh;overflow-y:auto;
+}
+.modal h3{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:400;
+  font-style:italic;margin-bottom:1.5rem;color:var(--stone);}
+.form-row{margin-bottom:1rem;}
+.form-row label{display:block;font-size:11px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--stone-l);margin-bottom:.4rem;}
+.form-row input,.form-row select,.form-row textarea{
+  width:100%;font-family:'Jost',sans-serif;font-size:13px;color:var(--stone);
+  background:var(--sand);border:1px solid var(--border-m);border-radius:var(--r-s);
+  padding:8px 12px;outline:none;transition:border-color .15s;
+}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--moss);}
+.form-row textarea{resize:vertical;min-height:60px;}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:1.5rem;}
+.btn-primary{font-family:'Jost',sans-serif;font-size:12.5px;font-weight:600;
+  padding:7px 20px;border-radius:20px;border:none;background:var(--moss);
+  color:white;cursor:pointer;transition:background .15s;letter-spacing:.04em;}
+.btn-primary:hover{background:#3A5530;}
+.btn-cancel{font-family:'Jost',sans-serif;font-size:12.5px;font-weight:500;
+  padding:7px 18px;border-radius:20px;border:1px solid var(--border-m);
+  background:transparent;color:var(--stone-m);cursor:pointer;transition:all .15s;}
+.btn-cancel:hover{border-color:var(--stone-m);}
+
+/* Color picker for pills */
+.color-swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;}
+.swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s,border-color .12s;}
+.swatch:hover{transform:scale(1.15);}
+.swatch.active{border-color:var(--stone);}
+
+/* ── STATUS PICKER ── */
+.status-menu{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:50;
+  background:#FDFAF5;border:1px solid var(--border-m);border-radius:var(--r-s);
+  box-shadow:0 4px 20px rgba(44,42,38,.14);padding:.4rem;min-width:130px;
+  display:none;
+}
+.status-menu.open{display:block;}
+.sm-item{
+  padding:5px 10px;border-radius:4px;font-size:12px;font-weight:500;
+  letter-spacing:.08em;cursor:pointer;transition:background .12s;
+  text-transform:uppercase;display:block;width:100%;border:none;
+  text-align:left;font-family:'Jost',sans-serif;
+}
+.sm-item:hover{background:var(--sand-d);}
+
+/* ── ICON PICKER ── */
+.icon-picker{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:50;
+  background:#FDFAF5;border:1px solid var(--border-m);border-radius:var(--r-s);
+  box-shadow:0 4px 20px rgba(44,42,38,.14);padding:.4rem;
+  display:none;flex-wrap:wrap;gap:3px;width:140px;
+}
+.icon-picker.open{display:flex;}
+.ip-item{
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;cursor:pointer;border-radius:4px;border:none;background:transparent;
+  transition:background .12s;
+}
+.ip-item:hover{background:var(--sand-d);}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:2rem;right:2rem;z-index:200;
+  background:var(--stone);color:white;border-radius:var(--r-s);
+  padding:.65rem 1.2rem;font-size:12.5px;font-weight:400;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);
+  transform:translateY(10px);opacity:0;transition:all .25s;pointer-events:none;
+}
+.toast.show{transform:none;opacity:1;}
+
+/* ── HIDDEN FILE INPUT ── */
+.file-input{display:none;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .page{padding:1.5rem 1rem 4rem;}
+  .h-title{font-size:32px;}
+  .header-deco{display:none;}
+  .card-header{padding:1.25rem 1.25rem 1rem;}
+  .slabel{padding-left:1.25rem;}
+  .stages-section,.gallery-section,.highlights-section{padding-left:1.25rem;padding-right:1.25rem;}
+  .map-legend{padding-left:1.25rem;padding-right:1.25rem;}
+  .trip-stats{gap:1.2rem;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NEW TRIP MODAL -->
+<div class="modal-overlay" id="tripModal">
+  <div class="modal">
+    <h3>添加新的徒步计划</h3>
+    <div class="form-row">
+      <label>路线名称</label>
+      <input type="text" id="m-name" placeholder="e.g. Camino Francés — 最后 100 km">
+    </div>
+    <div class="form-row">
+      <label>路线副标题（起终点）</label>
+      <input type="text" id="m-route" placeholder="e.g. Saint-Jean-Pied-de-Port → Santiago">
+    </div>
+    <div class="form-row" style="display:flex;gap:10px;">
+      <div style="flex:1">
+        <label>状态</label>
+        <select id="m-status">
+          <option value="planned">计划中 · Planned</option>
+          <option value="ongoing">进行中 · Ongoing</option>
+          <option value="done">已完成 · Done</option>
+          <option value="dream">梦想中 · Dream</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label>时间</label>
+        <input type="text" id="m-date" placeholder="e.g. April 2027">
+      </div>
+    </div>
+    <div class="form-row" style="display:flex;gap:10px;">
+      <div style="flex:1">
+        <label>总距离</label>
+        <input type="text" id="m-km" placeholder="e.g. ~120 km">
+      </div>
+      <div style="flex:1">
+        <label>天数</label>
+        <input type="text" id="m-days" placeholder="e.g. 6–7 天">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>地图说明（可选）</label>
+      <input type="text" id="m-map" placeholder="e.g. 路线来源：Camino de Santiago 官方网站">
+    </div>
+    <div class="form-row" style="display:flex;gap:10px;">
+      <div style="flex:1">
+        <label>Year · 年份</label>
+        <input type="number" id="m-year" placeholder="e.g. 2027" min="2000" max="2100">
+      </div>
+      <div style="flex:1">
+        <label>Country · 国家</label>
+        <input type="text" id="m-country" placeholder="e.g. Spain">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="createTrip()">创建路线 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD HIGHLIGHT MODAL -->
+<div class="modal-overlay" id="pillModal">
+  <div class="modal" style="max-width:360px;">
+    <h3>添加亮点标签</h3>
+    <div class="form-row">
+      <label>内容</label>
+      <input type="text" id="p-text" placeholder="e.g. Praza do Obradoiro">
+    </div>
+    <div class="form-row">
+      <label>颜色</label>
+      <div class="color-swatches" id="p-swatches"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closePillModal()">取消</button>
+      <button class="btn-primary" onclick="confirmAddPill()">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STAGE MODAL -->
+<div class="modal-overlay" id="stageModal">
+  <div class="modal" style="max-width:400px;">
+    <h3>添加行程段</h3>
+    <div class="form-row">
+      <label>图标</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;" id="stage-icon-btns">
+        <button class="ip-item" style="display:inline-flex;width:auto;padding:4px 10px;border-radius:var(--r-s);font-size:13px;gap:4px;background:var(--sand-d);border:1px solid var(--border);" data-type="bus">🚌 大巴</button>
+        <button class="ip-item" style="display:inline-flex;width:auto;padding:4px 10px;border-radius:var(--r-s);font-size:13px;gap:4px;background:var(--sand-d);border:1px solid var(--border);" data-type="walk">▲ 徒步</button>
+        <button class="ip-item" style="display:inline-flex;width:auto;padding:4px 10px;border-radius:var(--r-s);font-size:13px;gap:4px;background:var(--sand-d);border:1px solid var(--border);" data-type="end">★ 终点</button>
+        <button class="ip-item" style="display:inline-flex;width:auto;padding:4px 10px;border-radius:var(--r-s);font-size:13px;gap:4px;background:var(--sand-d);border:1px solid var(--border);" data-type="train">🚂 火车</button>
+        <button class="ip-item" style="display:inline-flex;width:auto;padding:4px 10px;border-radius:var(--r-s);font-size:13px;gap:4px;background:var(--sand-d);border:1px solid var(--border);" data-type="ferry">⛴ 渡轮</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>名称</label>
+      <input type="text" id="st-name" placeholder="e.g. Vigo → Redondela">
+    </div>
+    <div class="form-row">
+      <label>详情</label>
+      <input type="text" id="st-detail" placeholder="e.g. 第 1 天 · ~20 km">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeStageModal()">取消</button>
+      <button class="btn-primary" onclick="confirmAddStage()">添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOUD SETUP MODAL -->
+<div class="modal-overlay" id="cloudModal">
+  <div class="modal" style="max-width:520px;">
+    <h3 style="margin-bottom:.4rem;">☁ 云同步设置</h3>
+    <p style="font-size:12px;color:var(--stone-l);margin-bottom:1.25rem;font-weight:300;">文字数据 → Cloudflare KV · 图片 → Cloudflare R2 · 完全免费（10 GB/月）</p>
+    <div id="cloud-cfg-status"></div>
+    <div class="form-row" style="margin-bottom:1rem;">
+      <label>Worker URL</label>
+      <input type="text" id="cfg-url" placeholder="https://hiking-journal.你的名字.workers.dev">
+    </div>
+    <div class="form-row" style="margin-bottom:1.5rem;">
+      <label>API Key</label>
+      <input type="password" id="cfg-key" placeholder="你在 Worker 里设置的密码" autocomplete="off">
+    </div>
+    <details style="margin-bottom:1.5rem;">
+      <summary style="font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--stone-m);cursor:pointer;padding:.4rem 0;">📋 Cloudflare 部署步骤（点击展开）</summary>
+      <div style="margin-top:.75rem;">
+        <div class="setup-step"><div class="step-num">1</div><div class="step-text">注册 <a href="https://dash.cloudflare.com" target="_blank">dash.cloudflare.com</a> 免费账号</div></div>
+        <div class="setup-step"><div class="step-num">2</div><div class="step-text"><strong>Workers & Pages → KV → Create namespace</strong><br>名字填 <code>HIKING_KV</code>，记下 ID</div></div>
+        <div class="setup-step"><div class="step-num">3</div><div class="step-text"><strong>R2 → Create bucket</strong><br>名字填 <code>hiking-images</code></div></div>
+        <div class="setup-step"><div class="step-num">4</div><div class="step-text"><strong>Workers & Pages → Create → Create Worker</strong><br>名字填 <code>hiking-journal</code>，点 Deploy，再点 <strong>Edit Code</strong>，粘贴以下代码后 <strong>Save and Deploy</strong>：
+          <pre style="background:var(--sand-d);border-radius:var(--r-s);padding:.75rem;margin-top:.5rem;font-size:10px;overflow-x:auto;line-height:1.6;white-space:pre-wrap;user-select:all;">export default {
+  async fetch(request, env) {
+    const cors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
+    };
+    if (request.method === 'OPTIONS')
+      return new Response(null, { headers: cors });
+
+    const key = request.headers.get('X-API-Key');
+    if (key !== env.API_KEY)
+      return new Response('Unauthorized', { status: 401, headers: cors });
+
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // ── STATE (KV) ──────────────────────────────
+    if (path === '/state') {
+      if (request.method === 'GET') {
+        const data = await env.HIKING_KV.get('journal_state');
+        return new Response(data || 'null', {
+          headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+      if (request.method === 'POST') {
+        const body = await request.text();
+        await env.HIKING_KV.put('journal_state', body);
+        return new Response('{"ok":true}', { headers: cors });
+      }
+    }
+
+    // ── IMAGES (R2) ─────────────────────────────
+    const imgMatch = path.match(/^\/img\/([a-z0-9]+)$/i);
+    if (imgMatch) {
+      const imgId = imgMatch[1];
+      if (request.method === 'GET') {
+        const obj = await env.HIKING_R2.get(imgId);
+        if (!obj) return new Response('Not found', { status: 404, headers: cors });
+        return new Response(obj.body, {
+          headers: { ...cors, 'Content-Type': obj.httpMetadata?.contentType || 'image/jpeg' }
+        });
+      }
+      if (request.method === 'PUT') {
+        const ct = request.headers.get('Content-Type') || 'image/jpeg';
+        await env.HIKING_R2.put(imgId, request.body, { httpMetadata: { contentType: ct } });
+        return new Response('{"ok":true}', { headers: cors });
+      }
+      if (request.method === 'DELETE') {
+        await env.HIKING_R2.delete(imgId);
+        return new Response('{"ok":true}', { headers: cors });
+      }
+    }
+
+    return new Response('Not found', { status: 404, headers: cors });
+  }
+};</pre>
+        </div></div>
+        <div class="setup-step"><div class="step-num">5</div><div class="step-text">Worker → <strong>Settings → Bindings → Add binding</strong><br>① Type: <strong>KV Namespace</strong> · Variable: <code>HIKING_KV</code> · 选 <code>HIKING_KV</code><br>② Type: <strong>R2 Bucket</strong> · Variable: <code>HIKING_R2</code> · 选 <code>hiking-images</code><br>→ Save & Deploy</div></div>
+        <div class="setup-step"><div class="step-num">6</div><div class="step-text"><strong>Settings → Variables and Secrets → Add → Secret</strong><br>Name: <code>API_KEY</code>，Value: 随意设一个密码 → Deploy</div></div>
+        <div class="setup-step"><div class="step-num">7</div><div class="step-text">复制 Worker 顶部 URL 填到上方，API Key 填第 6 步的密码 → 点连接 ✓</div></div>
+      </div>
+    </details>
+    <div class="modal-btns" style="justify-content:space-between;">
+      <button class="btn-cancel" style="color:var(--rust);border-color:var(--rust);" onclick="disconnectCloud()">断开连接</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-cancel" onclick="closeCloudSetup()">取消</button>
+        <button class="btn-primary" id="connect-btn" onclick="connectCloud()">连接并同步 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HIDDEN FILE INPUTS -->
+<input type="file" class="file-input" id="globalFileInput" accept="image/*">
+<input type="file" class="file-input" id="routemapFileInput" accept="image/*">
+<input type="file" class="file-input" id="importFileInput" accept=".json,application/json">
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- EDIT BAR -->
+  <div class="edit-bar">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span>✦ <strong>编辑模式</strong> — 点击文字修改 · 点击图片上传</span>
+      <span class="sync-pill spin" id="sync-pill"><span class="spin-icon">⟳</span> 加载中…</span>
+    </div>
+    <div class="edit-bar-btns">
+      <button class="btn-sm btn-cloud" onclick="openCloudSetup()">☁ 云同步</button>
+      <button class="btn-sm btn-export" onclick="exportData()">⬇ Export JSON</button>
+      <button class="btn-sm btn-import" onclick="document.getElementById('importFileInput').click()">⬆ Import</button>
+      <button class="btn-sm btn-save" onclick="syncAll()">☁ 同步</button>
+      <button class="btn-sm btn-clear" onclick="clearAll()">清除</button>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <p class="eyebrow" id="h-eyebrow" contenteditable="true" data-ph="Hao's Hiking Journal · 徒步清单">Hao's Hiking Journal · 徒步清单</p>
+      <h1 class="h-title" id="h-title" contenteditable="true" data-ph="Trails &amp; pilgrimage routes">Trails &amp; pilgrimage routes</h1>
+      <p class="h-sub" id="h-sub" contenteditable="true" data-ph="A living list of walks worth taking">A living list of walks worth taking</p>
+    </div>
+    <div class="header-deco">☽</div>
+  </div>
+
+  <!-- SLICERS -->
+  <div class="slicer-bar" id="slicer-bar">
+    <div class="slicer-group">
+      <span class="slicer-label">Year</span>
+      <div class="slicer-chips" id="slicer-year"></div>
+    </div>
+    <div class="slicer-divider"></div>
+    <div class="slicer-group">
+      <span class="slicer-label">Country</span>
+      <div class="slicer-chips" id="slicer-country"></div>
+    </div>
+    <div class="slicer-divider"></div>
+    <div class="slicer-group">
+      <span class="slicer-label">Status</span>
+      <div class="slicer-chips" id="slicer-status"></div>
+    </div>
+  </div>
+
+  <!-- NO RESULTS -->
+  <div class="no-results" id="no-results">No trips match the selected filters ✦</div>
+
+  <!-- TRIPS CONTAINER -->
+  <div id="trips-container"></div>
+
+  <!-- ADD TRIP -->
+  <button class="add-trip-btn" onclick="openModal()">
+    <span class="add-trip-icon">+</span>
+    添加新的徒步计划 · Add a new hiking destination
+  </button>
+
+  <p class="footer" id="h-footer" contenteditable="true" data-ph="Buen Camino — 愿前路常开，脚下无忧 ✦">Buen Camino — 愿前路常开，脚下无忧 ✦</p>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE & CONSTANTS
+// ═══════════════════════════════════════════════
+const STORAGE_KEY = 'hiking_journal_v4';
+const IMG_PREFIX  = 'hiking_img_v4_';   // images stored separately in localStorage
+const PILL_COLORS = ['#3A6A9C','#5DCAA5','#4A6741','#6A9848','#A85230','#C4922A','#7A3068','#8A6030','#3A7A7A'];
+const ICON_MAP = {
+  bus:  {emoji:'🚌', cls:'icon-bus',  label:'大巴'},
+  walk: {emoji:'▲',  cls:'icon-walk', label:'徒步'},
+  end:  {emoji:'★',  cls:'icon-end',  label:'终点'},
+  train:{emoji:'🚂', cls:'icon-train',label:'火车'},
+  ferry:{emoji:'⛴',  cls:'icon-ferry',label:'渡轮'},
+};
+const STATUS_MAP = {
+  planned: {label:'Planned · 计划中', cls:'status-planned'},
+  done:    {label:'Done · 已完成',    cls:'status-done'},
+  ongoing: {label:'Ongoing · 进行中', cls:'status-ongoing'},
+  dream:   {label:'Dream · 梦想中',   cls:'status-dream'},
+};
+const STATUS_ORDER = ['planned','ongoing','done','dream'];
+
+let state = {
+  header: {eyebrow:'Hao\'s Hiking Journal · 徒步清单', title:'Trails & pilgrimage routes', sub:'A living list of walks worth taking', footer:'Buen Camino — 愿前路常开，脚下无忧 ✦'},
+  trips: []
+};
+
+// Current context for modals
+let _activeTripId = null;
+let _activePillColor = PILL_COLORS[0];
+let _activeStageType = 'walk';
+
+// ═══════════════════════════════════════════════
+//  IMAGE CACHE  (localStorage as local cache for cloud images)
+//  state stores imgId; actual pixels live in R2; cache here for speed
+// ═══════════════════════════════════════════════
+function cacheSet(imgId, dataUrl) {
+  try { localStorage.setItem(IMG_PREFIX + imgId, dataUrl); } catch(e) { /* cache full, ok */ }
+}
+function cacheGet(imgId) {
+  if (!imgId) return '';
+  return localStorage.getItem(IMG_PREFIX + imgId) || '';
+}
+function cacheDel(imgId) {
+  if (imgId) localStorage.removeItem(IMG_PREFIX + imgId);
+}
+
+// ═══════════════════════════════════════════════
+//  CLOUD CONFIG  (Worker URL + API Key)
+// ═══════════════════════════════════════════════
+const CFG_KEY = 'hiking_cf_v3';
+function getCfg()   { try { return JSON.parse(localStorage.getItem(CFG_KEY))||{}; }catch(e){ return {}; } }
+function saveCfg(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
+
+function setSyncPill(status, text) {
+  const el = document.getElementById('sync-pill');
+  if (!el) return;
+  el.className = 'sync-pill ' + (status||'');
+  el.innerHTML = status === 'spin'
+    ? `<span class="spin-icon">⟳</span> ${text}`
+    : text;
+}
+
+function openCloudSetup() {
+  const cfg = getCfg();
+  document.getElementById('cfg-url').value = cfg.url || '';
+  document.getElementById('cfg-key').value = cfg.apiKey || '';
+  const s = document.getElementById('cloud-cfg-status');
+  s.innerHTML = cfg.url
+    ? `<div class="cfg-connected">✓ 已连接：${cfg.url}<br><small style="opacity:.7">文字数据 → KV · 图片 → R2 · 均存储在 Cloudflare</small></div>`
+    : `<div class="cfg-disconnected">未连接 — 当前仅本地保存</div>`;
+  document.getElementById('cloudModal').classList.add('open');
+}
+function closeCloudSetup() { document.getElementById('cloudModal').classList.remove('open'); }
+
+async function connectCloud() {
+  const url    = document.getElementById('cfg-url').value.trim().replace(/\/+$/, '');
+  const apiKey = document.getElementById('cfg-key').value.trim();
+  if (!url || !apiKey) { showToast('⚠ 请填写 Worker URL 和 API Key'); return; }
+  const btn = document.getElementById('connect-btn');
+  btn.textContent = '测试中…'; btn.disabled = true;
+  try {
+    const res = await fetch(url + '/state', { headers: { 'X-API-Key': apiKey } });
+    if (res.status === 401) { showToast('⚠ API Key 不正确'); btn.textContent = '连接并同步 →'; btn.disabled = false; return; }
+    if (!res.ok && res.status !== 404) { showToast('⚠ 连接失败：' + res.status); btn.textContent = '连接并同步 →'; btn.disabled = false; return; }
+  } catch(e) { showToast('⚠ 无法连接，请检查 URL'); btn.textContent = '连接并同步 →'; btn.disabled = false; return; }
+  saveCfg({ url, apiKey });
+  btn.textContent = '连接并同步 →'; btn.disabled = false;
+  closeCloudSetup();
+  await syncAll();
+}
+
+function disconnectCloud() {
+  if (!confirm('断开云同步？本地缓存数据保留。')) return;
+  saveCfg({});
+  setSyncPill('', '💾 仅本地');
+  closeCloudSetup();
+  showToast('已断开云同步');
+}
+
+// ═══════════════════════════════════════════════
+//  FLUSH EDITS → STATE
+// ═══════════════════════════════════════════════
+function flushEdits() {
+  state.header.eyebrow = document.getElementById('h-eyebrow').innerText;
+  state.header.title   = document.getElementById('h-title').innerText;
+  state.header.sub     = document.getElementById('h-sub').innerText;
+  state.header.footer  = document.getElementById('h-footer').innerText;
+  state.trips.forEach(trip => {
+    const el = document.getElementById('trip-'+trip.id);
+    if (!el) return;
+    trip.name       = el.querySelector('.trip-name')?.innerText       || trip.name;
+    trip.route      = el.querySelector('.trip-route-text')?.innerText || trip.route;
+    trip.date       = el.querySelector('.trip-date')?.innerText       || trip.date;
+    trip.statVal    = el.querySelector('.stat-val-km')?.innerText     || trip.statVal;
+    trip.statDays   = el.querySelector('.stat-val-days')?.innerText   || trip.statDays;
+    trip.mapCaption = el.querySelector(`#routemap-cap-${trip.id}`)?.innerText || trip.mapCaption;
+    trip.stages.forEach(s => {
+      const sc = document.getElementById('stage-'+s.id); if (!sc) return;
+      const f = sc.querySelectorAll('[contenteditable]');
+      if (f[0]) s.name = f[0].innerText; if (f[1]) s.detail = f[1].innerText;
+    });
+    trip.photos.forEach(p => {
+      const pc = document.getElementById('photo-'+p.id); if (!pc) return;
+      const pl = pc.querySelector('.photo-place'), de = pc.querySelector('.photo-desc');
+      if (pl) p.place = pl.innerText; if (de) p.desc = de.innerText;
+    });
+    trip.pills.forEach(p => {
+      const pe = document.getElementById('pill-'+p.id); if (!pe) return;
+      const sp = pe.querySelector('[contenteditable]'); if (sp) p.text = sp.innerText;
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  CLOUD API HELPERS
+//  Worker endpoints:
+//    GET  /state          → returns state JSON
+//    POST /state          → saves state JSON
+//    GET  /img/<imgId>    → returns image bytes
+//    PUT  /img/<imgId>    → uploads image bytes (body = raw binary)
+//    DELETE /img/<imgId>  → deletes image from R2
+// ═══════════════════════════════════════════════
+async function apiGetState(cfg) {
+  const res = await fetch(cfg.url + '/state', { headers: { 'X-API-Key': cfg.apiKey } });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('GET /state failed: ' + res.status);
+  return res.json();
+}
+async function apiPostState(cfg, stateObj) {
+  const res = await fetch(cfg.url + '/state', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': cfg.apiKey },
+    body: JSON.stringify(stateObj)
+  });
+  if (!res.ok) throw new Error('POST /state failed: ' + res.status);
+}
+async function apiPutImage(cfg, imgId, blob) {
+  const res = await fetch(cfg.url + '/img/' + imgId, {
+    method: 'PUT',
+    headers: { 'Content-Type': blob.type || 'image/jpeg', 'X-API-Key': cfg.apiKey },
+    body: blob
+  });
+  if (!res.ok) throw new Error('PUT /img failed: ' + res.status);
+}
+async function apiDeleteImage(cfg, imgId) {
+  await fetch(cfg.url + '/img/' + imgId, {
+    method: 'DELETE',
+    headers: { 'X-API-Key': cfg.apiKey }
+  });
+}
+// Returns a public R2 URL for an image (served via Worker)
+function imgUrl(imgId) {
+  const cfg = getCfg();
+  if (cfg.url && imgId) return cfg.url + '/img/' + imgId;
+  return cacheGet(imgId) || '';
+}
+
+// ═══════════════════════════════════════════════
+//  PENDING IMAGE UPLOADS  (queued while offline or before sync)
+// ═══════════════════════════════════════════════
+// _pendingUploads: { imgId → File/Blob }
+const _pendingUploads = {};
+const _pendingDeletes = new Set();
+
+// ═══════════════════════════════════════════════
+//  SYNC ALL  (push state + any pending image uploads to cloud)
+// ═══════════════════════════════════════════════
+async function syncAll() {
+  flushEdits();
+  const cfg = getCfg();
+
+  // Always save state text locally first
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+
+  if (!cfg.url) {
+    setSyncPill('', '💾 本地已保存');
+    showToast('✓ 已保存（本地）');
+    return;
+  }
+
+  setSyncPill('spin', '同步中…');
+  try {
+    // 1. Upload pending images to R2
+    const uploadIds = Object.keys(_pendingUploads);
+    if (uploadIds.length > 0) {
+      setSyncPill('spin', `上传图片 0/${uploadIds.length}…`);
+      for (let i = 0; i < uploadIds.length; i++) {
+        const imgId = uploadIds[i];
+        await apiPutImage(cfg, imgId, _pendingUploads[imgId]);
+        delete _pendingUploads[imgId];
+        setSyncPill('spin', `上传图片 ${i+1}/${uploadIds.length}…`);
+      }
+    }
+    // 2. Delete pending removals from R2
+    for (const imgId of _pendingDeletes) {
+      await apiDeleteImage(cfg, imgId);
+      _pendingDeletes.delete(imgId);
+    }
+    // 3. Push state JSON to KV
+    await apiPostState(cfg, state);
+    setSyncPill('ok', '☁ 已同步');
+    showToast('✓ 已同步到云端');
+  } catch(e) {
+    setSyncPill('err', '⚠ 同步失败');
+    showToast('⚠ 同步失败，数据已保存本地：' + e.message);
+  }
+}
+// Keep saveAll as alias so autoSave() still works
+async function saveAll() { await syncAll(); }
+
+// ═══════════════════════════════════════════════
+//  LOAD ALL  (pull state from cloud; images loaded on demand via URL)
+// ═══════════════════════════════════════════════
+async function loadAll() {
+  const cfg = getCfg();
+  if (cfg.url) {
+    setSyncPill('spin', '从云端加载…');
+    try {
+      const data = await apiGetState(cfg);
+      if (data && data.trips) {
+        state = data;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        setSyncPill('ok', '☁ 已同步');
+        return;
+      }
+    } catch(e) {
+      setSyncPill('err', '⚠ 云端加载失败，用本地数据');
+    }
+  } else {
+    setSyncPill('', '💾 本地存储');
+  }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) { state.trips = [defaultTrip()]; return; }
+  try { state = JSON.parse(raw); } catch(e) { state.trips = [defaultTrip()]; }
+}
+
+// ═══════════════════════════════════════════════
+//  CLEAR ALL
+// ═══════════════════════════════════════════════
+function clearAll() {
+  if (!confirm('清除所有数据？云端图片和文字均会删除，不可恢复。')) return;
+  const cfg = getCfg();
+  if (cfg.url) {
+    // Delete all images from R2
+    state.trips.forEach(trip => {
+      if (trip.mapImgId) apiDeleteImage(cfg, trip.mapImgId);
+      trip.photos.forEach(p => { if (p.imgId) apiDeleteImage(cfg, p.imgId); });
+    });
+    // Clear KV state
+    apiPostState(cfg, { header: state.header, trips: [] });
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT / IMPORT  (JSON text — imgIds only, no base64)
+// ═══════════════════════════════════════════════
+function exportData() {
+  flushEdits();
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const d    = new Date().toISOString().slice(0,10);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `hiking_journal_${d}.json`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ 已导出 JSON');
+}
+
+document.getElementById('importFileInput').addEventListener('change', function() {
+  const file = this.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    let imported;
+    try { imported = JSON.parse(e.target.result); }
+    catch(err) { showToast('⚠ 无法解析文件'); return; }
+    if (!imported || !Array.isArray(imported.trips)) { showToast('⚠ 文件格式不正确'); return; }
+    if (!confirm(`导入后将替换当前所有数据。\n文件包含 ${imported.trips.length} 条路线，确定继续吗？`)) return;
+    if (!imported.header) imported.header = state.header;
+    state = imported;
+    await syncAll();
+    render();
+    showToast(`✓ 已导入 ${imported.trips.length} 条路线`);
+  };
+  reader.readAsText(file, 'UTF-8');
+  this.value = '';
+});
+
+// ═══════════════════════════════════════════════
+//  MIGRATE old state (v3: img stored inline) → v4 (imgId pattern)
+// ═══════════════════════════════════════════════
+function migrateState() {
+  state.trips.forEach(trip => {
+    if (trip.mapImg && !trip.mapImgId) {
+      trip.mapImgId = uid();
+      cacheSet(trip.mapImgId, trip.mapImg);
+      // Queue for R2 upload on next sync
+      fetch(trip.mapImg).then(r=>r.blob()).then(b=>{ _pendingUploads[trip.mapImgId]=b; }).catch(()=>{});
+      trip.mapImg = '';
+    }
+    trip.photos.forEach(p => {
+      if (p.img && !p.imgId) {
+        p.imgId = uid();
+        cacheSet(p.imgId, p.img);
+        fetch(p.img).then(r=>r.blob()).then(b=>{ _pendingUploads[p.imgId]=b; }).catch(()=>{});
+        p.img = '';
+      }
+    });
+  });
+}
+// ═══════════════════════════════════════════════
+function defaultTrip() {
+  return {
+    id: uid(),
+    name: 'Camino Português — 最后 100 km',
+    route: 'Porto 波尔图  ⟶ 🚌 ⟶  Vigo  ⟶ 🥾 ⟶  Santiago de Compostela 圣地亚哥',
+    date: 'April 2027 · 春',
+    year: 2027,
+    country: 'Spain',
+    status: 'planned',
+    statVal: '~120 km',
+    statDays: '6–7 天',
+    mapImg: '',
+    mapCaption: '点击上方图片区域上传你的路线地图截图',
+    stages: [
+      {id:uid(), type:'bus',  name:'Porto → Vigo',                detail:'大巴 · 约 2.5 h · ~70 km'},
+      {id:uid(), type:'walk', name:'Vigo → Redondela',            detail:'第 1 天 · ~20 km'},
+      {id:uid(), type:'walk', name:'Redondela → Pontevedra',      detail:'第 2 天 · ~19 km'},
+      {id:uid(), type:'walk', name:'Pontevedra → Caldas de Reis', detail:'第 3 天 · ~22 km'},
+      {id:uid(), type:'walk', name:'Caldas de Reis → Padrón',     detail:'第 4 天 · ~18 km'},
+      {id:uid(), type:'end',  name:'Padrón → Santiago',           detail:'第 5 天 · ~25 km · 终点！'},
+    ],
+    photos: [
+      {id:uid(), place:'Porto · 出发地',       desc:'蓝色瓷砖、波特酒窖与杜罗河畔', imgId:''},
+      {id:uid(), place:'Redondela · 第 1 天',  desc:'横跨河谷的双19世纪铁路高架桥',  imgId:''},
+      {id:uid(), place:'Pontevedra · 第 2 天', desc:'西班牙最美中世纪老城，几乎完全禁车', imgId:''},
+      {id:uid(), place:'Padrón · 第 4 天',     desc:'翠绿加利西亚山谷，乌拉河',      imgId:''},
+      {id:uid(), place:'Santiago · 第 5 天 · 终点', desc:'巴洛克大教堂立于奥布拉多伊洛广场', imgId:''},
+    ],
+    pills: [
+      {id:uid(), text:'Porto Ribeira 水岸', color:'#3A6A9C'},
+      {id:uid(), text:'Vigo 河口',          color:'#5DCAA5'},
+      {id:uid(), text:'Redondela 高架桥',   color:'#4A6741'},
+      {id:uid(), text:'Pontevedra 无车老城',color:'#6A9848'},
+      {id:uid(), text:'桉树林古道',          color:'#5DCAA5'},
+      {id:uid(), text:'朝圣者弥撒 & 大香炉', color:'#C4922A'},
+      {id:uid(), text:'Praza do Obradoiro', color:'#A85230'},
+    ]
+  };
+}
+
+// ═══════════════════════════════════════════════
+//  SORT
+// ═══════════════════════════════════════════════
+function sortTrips() {
+  state.trips.sort((a, b) => {
+    const ya = a.year || 9999;
+    const yb = b.year || 9999;
+    return ya - yb;
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function render() {
+  document.getElementById('h-eyebrow').innerText = state.header.eyebrow;
+  document.getElementById('h-title').innerText   = state.header.title;
+  document.getElementById('h-sub').innerText     = state.header.sub;
+  document.getElementById('h-footer').innerText  = state.header.footer;
+  sortTrips();
+  renderTrips();
+  buildSlicers();
+}
+
+function renderTrips() {
+  const container = document.getElementById('trips-container');
+  container.innerHTML = '';
+  state.trips.forEach(trip => {
+    container.appendChild(buildTripCard(trip));
+  });
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════
+//  SLICERS
+// ═══════════════════════════════════════════════
+let activeFilters = { year: 'all', country: 'all', status: 'all' };
+
+function buildSlicers() {
+  // Collect unique values
+  const years    = [...new Set(state.trips.map(t => t.year).filter(Boolean))].sort((a,b)=>a-b);
+  const countries= [...new Set(state.trips.map(t => (t.country||'').trim()).filter(Boolean))].sort();
+  const statuses = [...new Set(state.trips.map(t => t.status).filter(Boolean))];
+
+  renderSlicer('slicer-year',    ['all', ...years],     activeFilters.year,    v => { activeFilters.year    = v; applyFilters(); }, v => v === 'all' ? 'All' : String(v));
+  renderSlicer('slicer-country', ['all', ...countries], activeFilters.country, v => { activeFilters.country = v; applyFilters(); }, v => v === 'all' ? 'All' : v);
+  renderSlicer('slicer-status',  ['all', ...STATUS_ORDER.filter(s => statuses.includes(s))], activeFilters.status, v => { activeFilters.status  = v; applyFilters(); }, v => v === 'all' ? 'All' : STATUS_MAP[v]?.label.split(' · ')[0] || v);
+}
+
+function renderSlicer(containerId, values, active, onChange, labelFn) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  values.forEach(v => {
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (v === 'all' ? ' all' : '') + (String(v) === String(active) ? ' active' : '');
+    btn.textContent = labelFn(v);
+    btn.addEventListener('click', () => {
+      onChange(v);
+      buildSlicers(); // rebuild to reflect new active state
+    });
+    el.appendChild(btn);
+  });
+}
+
+function applyFilters() {
+  const { year, country, status } = activeFilters;
+  let visibleCount = 0;
+
+  state.trips.forEach(trip => {
+    const el = document.getElementById('trip-'+trip.id);
+    if (!el) return;
+    const matchYear    = year    === 'all' || trip.year === year;
+    const matchCountry = country === 'all' || (trip.country||'').trim() === country;
+    const matchStatus  = status  === 'all' || trip.status === status;
+    const visible = matchYear && matchCountry && matchStatus;
+    el.style.display = visible ? '' : 'none';
+    if (visible) visibleCount++;
+  });
+
+  document.getElementById('no-results').style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+function buildTripCard(trip) {
+  const sm = STATUS_MAP[trip.status] || STATUS_MAP.planned;
+  const wrap = document.createElement('div');
+  wrap.className = 'card-wrap';
+  wrap.id = 'trip-'+trip.id;
+
+  wrap.innerHTML = `
+  <div class="trip-card">
+    <!-- DELETE CARD -->
+    <button class="card-del-btn" onclick="deleteTrip('${trip.id}')" title="删除此路线">✕</button>
+
+    <!-- CARD HEADER -->
+    <div class="card-header">
+      <div style="flex:1;min-width:0;">
+        <div class="meta-row">
+          <div style="position:relative;">
+            <span class="status-badge ${sm.cls}" onclick="openStatusMenu(this,'${trip.id}')">${sm.label}</span>
+            <div class="status-menu" id="sm-${trip.id}">
+              ${STATUS_ORDER.map(s=>`<button class="sm-item" onclick="setStatus('${trip.id}','${s}')">${STATUS_MAP[s].label}</button>`).join('')}
+            </div>
+          </div>
+          <span class="trip-date" contenteditable="true">${trip.date}</span>
+        </div>
+        <h2 class="trip-name" contenteditable="true">${trip.name}</h2>
+        <div class="trip-route">
+          <span class="trip-route-text" contenteditable="true">${trip.route}</span>
+        </div>
+      </div>
+      <div class="trip-stats">
+        <div class="stat">
+          <div class="stat-val stat-val-km" contenteditable="true">${trip.statVal}</div>
+          <div class="stat-lbl">距离</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val stat-val-days" contenteditable="true">${trip.statDays}</div>
+          <div class="stat-lbl">天数</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROUTE MAP IMAGE -->
+    <div class="routemap-block">
+      <p class="slabel">Route map · 路线地图</p>
+      <div class="routemap-upload-area ${(trip.mapImgId||trip.mapImg)?'':'empty'}"
+           id="routemap-${trip.id}"
+           onclick="triggerRoutemapUpload('${trip.id}')">
+        ${(trip.mapImgId||trip.mapImg)
+          ? `<img src="${imgUrl(trip.mapImgId)||trip.mapImg||''}" alt="route map">`
+          : ''}
+        <div class="routemap-upload-overlay">
+          <span class="up-icon">🗺</span>
+          <span class="up-text">${(trip.mapImgId||trip.mapImg) ? '点击更换地图图片' : '点击上传路线地图'}</span>
+          <span class="up-hint">支持截图、手绘地图、GPX 截图等任意图片</span>
+        </div>
+      </div>
+      <div class="routemap-caption-row">
+        <span class="routemap-caption" contenteditable="true" id="routemap-cap-${trip.id}">${escHtml(trip.mapCaption||'在这里添加地图说明，例如路线来源、比例尺等')}</span>
+        <button class="routemap-del-btn" onclick="clearRouteMap('${trip.id}')" title="移除地图">✕</button>
+      </div>
+    </div>
+
+    <!-- STAGES -->
+    <div class="stages-section">
+      <p class="slabel">Stage breakdown · 每日行程</p>
+      <div class="stages-grid" id="stages-${trip.id}">
+        ${trip.stages.map(s => buildStageHTML(s, trip.id)).join('')}
+        <button class="add-stage-btn" onclick="openStageModal('${trip.id}')">＋ 添加行程段</button>
+      </div>
+    </div>
+
+    <!-- GALLERY -->
+    <div class="gallery-section">
+      <p class="slabel">Along the way · 沿途风景</p>
+      <div class="gallery-scroll" id="gallery-${trip.id}">
+        ${trip.photos.map(p => buildPhotoHTML(p, trip.id)).join('')}
+        <button class="add-photo-btn" onclick="addPhoto('${trip.id}')">
+          <span class="aph-icon">＋</span>添加照片
+        </button>
+      </div>
+    </div>
+
+    <!-- HIGHLIGHTS -->
+    <div class="highlights-section">
+      <p class="slabel">Highlights · 亮点</p>
+      <div class="pills-row" id="pills-${trip.id}">
+        ${trip.pills.map(p => buildPillHTML(p, trip.id)).join('')}
+        <button class="add-pill-btn" onclick="openPillModal('${trip.id}')">＋ 添加标签</button>
+      </div>
+    </div>
+  </div>`;
+
+  return wrap;
+}
+
+function buildStageHTML(s, tripId) {
+  const ic = ICON_MAP[s.type] || ICON_MAP.walk;
+  return `<div class="stage-card" id="stage-${s.id}">
+    <div class="stage-icon ${ic.cls}">${ic.emoji}</div>
+    <div style="flex:1;min-width:0;">
+      <p class="stage-name" contenteditable="true">${escHtml(s.name)}</p>
+      <p class="stage-detail" contenteditable="true">${escHtml(s.detail)}</p>
+    </div>
+    <button class="stage-del" onclick="deleteStage('${tripId}','${s.id}')" title="删除">✕</button>
+  </div>`;
+}
+
+function buildPhotoHTML(p, tripId) {
+  const src = imgUrl(p.imgId) || p.img || '';
+  return `<div class="photo-card" id="photo-${p.id}">
+    <div class="photo-img-wrap ${src?'has-img':''}" onclick="triggerPhotoUpload('${tripId}','${p.id}')">
+      ${src
+        ? `<img src="${src}" alt="">`
+        : `<div class="photo-placeholder"><span class="pp-icon">🏔</span><span>点击上传图片</span></div>`}
+    </div>
+    <div class="photo-caption">
+      <p class="photo-place" contenteditable="true">${escHtml(p.place)}</p>
+      <p class="photo-desc"  contenteditable="true">${escHtml(p.desc)}</p>
+    </div>
+    <button class="photo-del-btn" onclick="deletePhoto('${tripId}','${p.id}')">✕</button>
+  </div>`;
+}
+
+function buildPillHTML(p, tripId) {
+  return `<div class="pill" id="pill-${p.id}">
+    <span class="pill-dot" style="background:${p.color}"></span>
+    <span contenteditable="true">${escHtml(p.text)}</span>
+    <button class="pill-del" onclick="deletePill('${tripId}','${p.id}')">✕</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  TRIP CRUD
+// ═══════════════════════════════════════════════
+function openModal()  { document.getElementById('tripModal').classList.add('open'); }
+function closeModal() { document.getElementById('tripModal').classList.remove('open'); }
+
+function createTrip() {
+  const name  = document.getElementById('m-name').value.trim()  || '新的徒步路线';
+  const route = document.getElementById('m-route').value.trim() || '起点 → 终点';
+  const status= document.getElementById('m-status').value;
+  const date  = document.getElementById('m-date').value.trim()  || '';
+  const km    = document.getElementById('m-km').value.trim()    || '— km';
+  const days  = document.getElementById('m-days').value.trim()  || '— 天';
+  const mapCaption = document.getElementById('m-map').value.trim() || '点击上方图片区域上传你的路线地图截图';
+  const year    = parseInt(document.getElementById('m-year').value)    || null;
+  const country = document.getElementById('m-country').value.trim()    || '';
+
+  const trip = {
+    id: uid(), name, route, date, status,
+    year, country,
+    statVal: km, statDays: days,
+    mapImg: '', mapCaption,
+    stages:[], photos:[], pills:[]
+  };
+  state.trips.push(trip);
+  sortTrips();
+  closeModal();
+  // Clear form
+  ['m-name','m-route','m-date','m-km','m-days','m-map','m-country'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('m-year').value = '';
+  document.getElementById('m-status').value = 'planned';
+
+  renderTrips();
+  buildSlicers();
+  autoSave();
+  showToast('✓ 已添加新路线');
+}
+
+function deleteTrip(id) {
+  if (!confirm('确定要删除这条路线吗？')) return;
+  state.trips = state.trips.filter(t => t.id !== id);
+  const el = document.getElementById('trip-'+id);
+  if (el) el.remove();
+  buildSlicers();
+  applyFilters();
+  autoSave();
+  showToast('已删除');
+}
+
+// ═══════════════════════════════════════════════
+//  STATUS
+// ═══════════════════════════════════════════════
+function openStatusMenu(btn, tripId) {
+  document.querySelectorAll('.status-menu').forEach(m => m.classList.remove('open'));
+  const menu = document.getElementById('sm-'+tripId);
+  menu.classList.toggle('open');
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.classList.remove('open');
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 0);
+}
+function setStatus(tripId, status) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  trip.status = status;
+  document.getElementById('sm-'+tripId).classList.remove('open');
+  const sm = STATUS_MAP[status];
+  const badge = document.querySelector('#trip-'+tripId+' .status-badge');
+  badge.textContent = sm.label;
+  badge.className = 'status-badge ' + sm.cls;
+  autoSave();
+  buildSlicers();
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════
+//  ROUTE MAP IMAGE
+// ═══════════════════════════════════════════════
+let _routemapUploadTripId = null;
+
+function triggerRoutemapUpload(tripId) {
+  _routemapUploadTripId = tripId;
+  const fi = document.getElementById('routemapFileInput');
+  fi.value = ''; fi.click();
+}
+
+function clearRouteMap(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  if (trip.mapImgId) {
+    delete _pendingUploads[trip.mapImgId];
+    _pendingDeletes.add(trip.mapImgId);
+    cacheDel(trip.mapImgId);
+    trip.mapImgId = '';
+  }
+  trip.mapImg = '';
+  const area = document.getElementById('routemap-'+tripId);
+  if (area) {
+    area.classList.add('empty');
+    area.querySelector('img')?.remove();
+    const ut = area.querySelector('.up-text');
+    if (ut) ut.textContent = '点击上传路线地图';
+  }
+  autoSave();
+  showToast('已移除地图图片');
+}
+
+document.getElementById('routemapFileInput').addEventListener('change', function() {
+  if (!this.files[0] || !_routemapUploadTripId) return;
+  const tripId = _routemapUploadTripId;
+  _routemapUploadTripId = null;
+  const file = this.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const trip = state.trips.find(t => t.id === tripId);
+    if (!trip) return;
+    if (!trip.mapImgId) trip.mapImgId = uid();
+    _pendingUploads[trip.mapImgId] = file;
+    cacheSet(trip.mapImgId, dataUrl);
+    trip.mapImg = '';
+    const area = document.getElementById('routemap-'+tripId);
+    if (area) {
+      area.classList.remove('empty');
+      area.querySelector('img')?.remove();
+      const img = document.createElement('img');
+      img.src = dataUrl; img.alt = 'route map';
+      area.insertBefore(img, area.firstChild);
+      const ut = area.querySelector('.up-text');
+      if (ut) ut.textContent = '点击更换地图图片';
+    }
+    autoSave();
+    showToast('✓ 地图已选择，同步时上传到云端');
+  };
+  reader.readAsDataURL(file);
+});
+
+// ═══════════════════════════════════════════════
+//  STAGES
+// ═══════════════════════════════════════════════
+function openStageModal(tripId) {
+  _activeTripId = tripId;
+  _activeStageType = 'walk';
+  // Reset active state on buttons
+  document.querySelectorAll('#stage-icon-btns .ip-item').forEach(b => {
+    b.style.background = 'var(--sand-d)'; b.style.borderColor = 'var(--border)';
+  });
+  document.querySelector('[data-type="walk"]').style.background = '#E5F0DE';
+  document.getElementById('st-name').value = '';
+  document.getElementById('st-detail').value = '';
+  document.getElementById('stageModal').classList.add('open');
+}
+function closeStageModal() { document.getElementById('stageModal').classList.remove('open'); }
+
+// Stage icon type selection
+document.querySelectorAll('#stage-icon-btns .ip-item').forEach(btn => {
+  btn.addEventListener('click', function() {
+    _activeStageType = this.dataset.type;
+    document.querySelectorAll('#stage-icon-btns .ip-item').forEach(b => {
+      b.style.background = 'var(--sand-d)'; b.style.borderColor = 'var(--border)';
+    });
+    this.style.background = '#E5F0DE'; this.style.borderColor = 'var(--moss)';
+  });
+});
+
+function confirmAddStage() {
+  const trip = state.trips.find(t => t.id === _activeTripId);
+  if (!trip) return;
+  const s = {
+    id: uid(),
+    type: _activeStageType,
+    name: document.getElementById('st-name').value.trim() || '新行程段',
+    detail: document.getElementById('st-detail').value.trim() || ''
+  };
+  trip.stages.push(s);
+  const grid = document.getElementById('stages-'+_activeTripId);
+  const addBtn = grid.querySelector('.add-stage-btn');
+  addBtn.insertAdjacentHTML('beforebegin', buildStageHTML(s, _activeTripId));
+  closeStageModal();
+  autoSave();
+  showToast('✓ 已添加行程段');
+}
+
+function deleteStage(tripId, stageId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (trip) trip.stages = trip.stages.filter(s => s.id !== stageId);
+  document.getElementById('stage-'+stageId)?.remove();
+  autoSave();
+}
+
+// ═══════════════════════════════════════════════
+//  PHOTOS
+// ═══════════════════════════════════════════════
+let _photoUploadCtx = null;
+
+function triggerPhotoUpload(tripId, photoId) {
+  _photoUploadCtx = { tripId, photoId };
+  const fi = document.getElementById('globalFileInput');
+  fi.value = ''; fi.click();
+}
+
+function addPhoto(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  const p = { id: uid(), place: '地点名称', desc: '在这里描述风景...', imgId: '' };
+  trip.photos.push(p);
+  const gallery = document.getElementById('gallery-'+tripId);
+  const addBtn = gallery.querySelector('.add-photo-btn');
+  addBtn.insertAdjacentHTML('beforebegin', buildPhotoHTML(p, tripId));
+  autoSave();
+  triggerPhotoUpload(tripId, p.id);
+}
+
+document.getElementById('globalFileInput').addEventListener('change', function() {
+  if (!this.files[0] || !_photoUploadCtx) return;
+  const { tripId, photoId } = _photoUploadCtx;
+  _photoUploadCtx = null;
+  const file = this.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const trip = state.trips.find(t => t.id === tripId);
+    const photo = trip?.photos.find(p => p.id === photoId);
+    if (!photo) return;
+    if (!photo.imgId) photo.imgId = uid();
+    // Queue for R2 upload; cache locally for instant display
+    _pendingUploads[photo.imgId] = file;
+    cacheSet(photo.imgId, dataUrl);
+    const wrap = document.querySelector(`#photo-${photoId} .photo-img-wrap`);
+    if (wrap) { wrap.classList.add('has-img'); wrap.innerHTML = `<img src="${dataUrl}" alt="">`; }
+    autoSave();
+    showToast('✓ 图片已选择，同步时上传到云端');
+  };
+  reader.readAsDataURL(file);
+});
+
+function deletePhoto(tripId, photoId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (trip) {
+    const photo = trip.photos.find(p => p.id === photoId);
+    if (photo?.imgId) {
+      delete _pendingUploads[photo.imgId];
+      _pendingDeletes.add(photo.imgId);
+      cacheDel(photo.imgId);
+    }
+    trip.photos = trip.photos.filter(p => p.id !== photoId);
+  }
+  document.getElementById('photo-'+photoId)?.remove();
+  autoSave();
+}
+
+// ═══════════════════════════════════════════════
+//  PILLS
+// ═══════════════════════════════════════════════
+function openPillModal(tripId) {
+  _activeTripId = tripId;
+  _activePillColor = PILL_COLORS[0];
+  document.getElementById('p-text').value = '';
+  // Build swatches
+  const sw = document.getElementById('p-swatches');
+  sw.innerHTML = PILL_COLORS.map((c,i) =>
+    `<div class="swatch${i===0?' active':''}" style="background:${c}" data-color="${c}" onclick="selectSwatchColor(this,'${c}')"></div>`
+  ).join('');
+  document.getElementById('pillModal').classList.add('open');
+}
+function closePillModal() { document.getElementById('pillModal').classList.remove('open'); }
+function selectSwatchColor(el, color) {
+  _activePillColor = color;
+  document.querySelectorAll('#p-swatches .swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+}
+function confirmAddPill() {
+  const trip = state.trips.find(t => t.id === _activeTripId);
+  if (!trip) return;
+  const text = document.getElementById('p-text').value.trim();
+  if (!text) return;
+  const p = { id: uid(), text, color: _activePillColor };
+  trip.pills.push(p);
+  const row = document.getElementById('pills-'+_activeTripId);
+  const addBtn = row.querySelector('.add-pill-btn');
+  addBtn.insertAdjacentHTML('beforebegin', buildPillHTML(p, _activeTripId));
+  closePillModal();
+  autoSave();
+}
+function deletePill(tripId, pillId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (trip) trip.pills = trip.pills.filter(p => p.id !== pillId);
+  document.getElementById('pill-'+pillId)?.remove();
+  autoSave();
+}
+
+// ═══════════════════════════════════════════════
+//  AUTO-SAVE
+// ═══════════════════════════════════════════════
+let _autoSaveTimer = null;
+function autoSave() {
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => saveAll(), 1500);
+}
+document.addEventListener('input', e => { if (e.target.hasAttribute('contenteditable')) autoSave(); });
+document.addEventListener('blur',  e => { if (e.target.hasAttribute('contenteditable')) saveAll(); }, true);
+
+// ═══════════════════════════════════════════════
+//  CLOSE MODALS ON OVERLAY CLICK
+// ═══════════════════════════════════════════════
+['tripModal','pillModal','stageModal','cloudModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2,10); }
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+(async function() {
+  await loadAll();
+  migrateState();
+  render();
+})();
+</script>
+</body>
+</html>
